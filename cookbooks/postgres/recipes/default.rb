@@ -8,6 +8,7 @@ require 'pp'
 execute "testing" do
   command %Q{
     echo "i ran at #{Time.now}" >> /root/pgtime
+    echo #{node[:instance_role]} >> /root/pgtime
   }
 end
 
