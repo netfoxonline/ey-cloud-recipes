@@ -5,13 +5,6 @@ require 'pp'
 #
 #
 
-execute "testing" do
-  command %Q{
-    echo "i ran at #{Time.now}" >> /root/pgtime
-    echo #{node[:instance_role]} >> /root/pgtime
-  }
-end
-
 if node[:instance_role] == 'db_master'
   postgres_root    = '/var/lib/postgresql'
   postgres_version = '8.3'
