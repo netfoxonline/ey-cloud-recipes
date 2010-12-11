@@ -1,5 +1,5 @@
 if node[:instance_role] =~ /^app/
-  remote_file "/etc/nginx/servers/keep.upload.location.conf" do
+  remote_file "/etc/nginx/servers/keep.upload.location" do
     source "upload.location.conf"
     owner "deploy"
     group "deploy"
