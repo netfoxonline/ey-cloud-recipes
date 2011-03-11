@@ -5,8 +5,41 @@ if node[:instance_role] =~ /^app/
   end
 
   package "www-servers/nginx" do
-    version "0.7.65-r2"
-    action :install
+    action :remove
+  end
+
+  package 'make'
+
+  remote_file "nginx" do
+    path "/tmp/nginx-0.8.53.tar.gz"
+    source 'http://nginx.org/download/nginx-0.8.53.tar.gz'
+  end
+
+  remote_file "nginx-upload" do
+    path "/tmp/nginx_upload_module-2.2.0.tar.gz"
+    source 'http://www.grid.net.ru/nginx/download/nginx_upload_module-2.2.0.tar.gz'
+  end
+
+  directory "/tmp/nginx-build" do
+    owner "root"
+    group "root"
+    mode "0755"
+    action :create
+  end
+
+  script "make-install-nginx" do
+    interpreter "bash"
+    user "root"
+    cwd "/tmp/nginx-build"
+    # should this rm -rf /root/nginx dir first?
+    code <<-EOC
+      tar zxvf /tmp/nginx-0.8.53.tar.gz
+      tar zxvf /tmp/nginx_upload_module-2.2.0.tar.gz
+      cd ./nginx-0.8.53
+      ./configure --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --sbin-path=/usr/sbin --with-http_ssl_module --add-module=../nginx_upload_module-2.2.0
+      make 
+      make install
+    EOC
   end
 
   service "nginx" do

@@ -20,4 +20,11 @@ if node[:instance_role] =~ /^app/
     action :create
     recursive true
   end
+  directory '/mnt/temp_uploads/csv/' do
+    owner 'deploy'
+    group 'deploy'
+    mode  '0755'
+    action :create
+    recursive true
+  end
 end
