@@ -5,9 +5,9 @@ execute "testing" do
 end
 
 # uncomment if you want to run postgres recipe
-require_recipe 'postgres'
+require_recipe 'postgres-solo'
 #require_recipe 'nginx'
-require_recipe 'nginx-uploads'
+#require_recipe 'nginx-uploads'
 
 # uncomment if you want to run couchdb recipe
 # require_recipe "couchdb"
