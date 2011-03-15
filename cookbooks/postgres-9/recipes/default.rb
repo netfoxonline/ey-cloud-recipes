@@ -11,7 +11,7 @@ if node[:instance_role] == 'db_master'
 
   execute "install postgres 9" do
     environment({"ACCEPT_KEYWORDS" => "~x86"})
-    command "emerge dev-db/postgresql-base"
+    command "emerge dev-db/postgresql-server"
     action :run
   end
 
