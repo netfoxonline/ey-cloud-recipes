@@ -5,6 +5,15 @@ require 'pp'
 #
 #
 
+# Install psql 09 on the application servers
+if node[:instance_role] =~ /^app/
+  execute "install postgres 9 client" do
+    environment({"ACCEPT_KEYWORDS" => "~x86"})
+    command "emerge dev-db/postgresql"
+    action :run
+  end
+end
+
 if node[:instance_role] == 'db_master'
   postgres_root    = '/var/lib/postgresql'
   postgres_version = '9.0'
@@ -157,6 +166,18 @@ node[:applications].each do |app_name,data|
     recursive true
   end
 
+  template "/home/deploy/.pgpass" do
+    source "pgpass.erb"
+    owner user[:username]
+    group user[:username]
+    mode 0744
+    variables({
+      :username => user[:username],
+      :app_name => app_name,
+      :db_pass => user[:password]
+    })
+  end
+
   [ "", "keep." ].each do |prefix|
     template "/data/#{app_name}/shared/config/#{prefix}database.yml" do
       source "database.yml.erb"
@@ -165,7 +186,6 @@ node[:applications].each do |app_name,data|
       mode 0744
       variables({
         :username => user[:username],
-        :app_name => app_name,
         :db_pass => user[:password]
       })
       not_if do File.exists?("/data/#{app_name}/shared/config/#{prefix}database.yml") end
