@@ -9,7 +9,12 @@ require 'pp'
 if node[:instance_role] =~ /^app/
   execute "install postgres 9 client" do
     environment({"ACCEPT_KEYWORDS" => "~x86"})
-    command "emerge dev-db/postgresql"
+    command "emerge dev-db/postgresql-base"
+    action :run
+  end
+
+  execute "set postgres 9 to be primary" do
+    command "eselect postgresql set 9.0"
     action :run
   end
 end
@@ -170,7 +175,7 @@ node[:applications].each do |app_name,data|
     source "pgpass.erb"
     owner user[:username]
     group user[:username]
-    mode 0744
+    mode 0600
     variables({
       :username => user[:username],
       :app_name => app_name,
@@ -186,6 +191,7 @@ node[:applications].each do |app_name,data|
       mode 0744
       variables({
         :username => user[:username],
+        :app_name => app_name,
         :db_pass => user[:password]
       })
       not_if do File.exists?("/data/#{app_name}/shared/config/#{prefix}database.yml") end
