@@ -5,7 +5,7 @@ require 'pp'
 #
 #
 
-if node[:instance_role] == 'db_master'
+#if node[:instance_role] == 'db_master'
   postgres_root    = '/var/lib/postgresql'
   postgres_version = '8.3'
 
@@ -106,13 +106,13 @@ if node[:instance_role] == 'db_master'
     command  "eybackup -e postgresql"
     not_if { node[:backup_window].to_s == '0' }
   end
-end
+#end
 
 node[:applications].each do |app_name,data|
   user = node[:users].first
   db_name = "#{app_name}_#{node[:environment][:framework_env]}"
 
-  if node[:instance_role] == 'db_master'
+  #if node[:instance_role] == 'db_master'
     execute "create-db-user-#{user[:username]}" do
       command "psql -c '\\du' | grep -q '#{user[:username]}' || psql -c \"create user #{user[:username]} with encrypted password \'#{user[:password]}\'\""
       action :run
@@ -136,7 +136,7 @@ node[:applications].each do |app_name,data|
       action :run
       user 'postgres'
     end
-  end
+  #end
 
   directory "/data/#{app_name}/shared/config/" do
     owner user[:username]
