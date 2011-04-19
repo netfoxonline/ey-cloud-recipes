@@ -4,10 +4,10 @@
 #
 
 # Set your application name here
-appname = "appname"
+appname = "realives"
 
 # Uncomment the flavor of sphinx you want to use
-#flavor = "thinking_sphinx"
+flavor = "thinking_sphinx"
 #flavor = "ultrasphinx"
 
 # If you want to install on a specific utility instance rather than
@@ -25,7 +25,7 @@ utility_name = nil
 #
 # If you don't want scheduled reindexes, just leave this set to nil.
 # Setting it equal to 10 would run the cron job every 10 minutes.
-cron_interval = nil
+cron_interval = 30
 
 if utility_name
   if ['solo', 'app', 'app_master'].include?(node[:instance_role])
@@ -215,7 +215,7 @@ else
       end
 
       execute "sphinx config" do
-        command "rake #{flavor}:configure"
+        command "bundle exec rake #{flavor}:configure"
         user node[:owner_name]
         environment({
           'HOME' => "/home/#{node[:owner_name]}",
@@ -229,7 +229,7 @@ else
       end
 
       execute "#{flavor} index" do
-        command "rake #{flavor}:index"
+        command "bundle exec rake #{flavor}:index"
         user node[:owner_name]
         environment({
           'HOME' => "/home/#{node[:owner_name]}",
@@ -248,7 +248,7 @@ else
           day     '*'
           month   '*'
           weekday '*'
-          command "cd /data/#{app_name}/current && RAILS_ENV=#{node[:environment][:framework_env]} rake #{flavor}:index"
+          command "cd /data/#{app_name}/current && RAILS_ENV=#{node[:environment][:framework_env]} bundle exec rake #{flavor}:index"
           user node[:owner_name]
         end
       end
