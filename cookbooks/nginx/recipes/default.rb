@@ -33,6 +33,7 @@ if node[:instance_role] =~ /^app/
     cwd "/tmp/nginx-build"
     # should this rm -rf /root/nginx dir first?
     code <<-EOC
+      /etc/init.d/nginx stop
       tar zxvf /tmp/nginx-0.8.53.tar.gz
       tar zxvf /tmp/nginx_upload_module-2.2.0.tar.gz
       cd ./nginx-0.8.53
