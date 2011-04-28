@@ -40,6 +40,7 @@ if node[:instance_role] =~ /^app/
       ./configure --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --sbin-path=/usr/sbin --with-http_ssl_module --add-module=../nginx_upload_module-2.2.0
       make 
       make install
+      /etc/init.d/nginx start
     EOC
   end
 
@@ -51,7 +52,7 @@ if node[:instance_role] =~ /^app/
   end
 
   service "nginx" do
-    supports :status => true, :stop => true, :restart => true, :staus => true
+    supports :status => true, :stop => true, :restart => true
     action :restart
   end
 end
