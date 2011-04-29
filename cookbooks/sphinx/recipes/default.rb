@@ -98,6 +98,7 @@ if utility_name
         variables({
           :app_name => app_name,
           :user => node[:owner_name],
+          :env_arg => "staging", # FIXME HACK!
           :flavor => flavor
         })
       end
