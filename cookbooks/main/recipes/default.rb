@@ -6,7 +6,7 @@ end
 
 # uncomment if you want to run postgres recipe
 require_recipe 'postgres'
-require_recipe 'nginx'
+#require_recipe 'nginx'
 require_recipe 'nginx-uploads'
 
 require_recipe "delayed_job"
@@ -21,7 +21,7 @@ require_recipe "delayed_job"
 # require_recipe "sphinx"
 
 #uncomment to turn on memcached
-# require_recipe "memcached"
+require_recipe "memcached"
 
 #uncomment to run the authorized_keys recipe
 #require_recipe "authorized_keys"
