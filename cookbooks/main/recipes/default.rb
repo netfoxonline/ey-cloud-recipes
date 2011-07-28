@@ -11,6 +11,8 @@ require_recipe 'nginx-uploads'
 
 require_recipe "delayed_job"
 
+require_recipe 'cron'
+
 # uncomment if you want to run couchdb recipe
 # require_recipe "couchdb"
 
