@@ -183,7 +183,7 @@ puts "Current conditions pair is #{path} #{condition}"
       file_array.each do |backup_fragment|
         if condition
 puts "uploading big #{backup_fragment} to s3 #{path}" 
-          upload_to_s3("#{path}#{datestamped_path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket)
+          upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket)
         end
         frag_index += 1
       end
@@ -195,7 +195,7 @@ puts "removing out of date #{backupfile} file fragments from #{path}" if conditi
     conditions.each_pair do |path, condition|
       if condition
 puts "uploading #{backupfile} to s3 #{path}" 
-        upload_to_s3("#{path}#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
+        upload_to_s3("#{path}#{datestamped_file}", backupfile, backup_bucket) 
 puts "removing out of date #{backupfile} files" 
         remove_out_of_date_backups(backup_bucket, path, backup_type) 
       end

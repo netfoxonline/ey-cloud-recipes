@@ -103,7 +103,7 @@ backup_type.each_pair do |backup_type, backup_path|
     conditions.each_pair do |path, condition|
       frag_index = 0
       file_array.each do |backup_fragment|
-        upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket) if condition
+        upload_to_s3("#{path}.#{frag_index}", backup_fragment, backup_bucket) if condition
         frag_index += 1
       end
       remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
@@ -112,7 +112,7 @@ backup_type.each_pair do |backup_type, backup_path|
   else
     conditions.each_pair do |path, condition|
       if condition
-        upload_to_s3("#{path}#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
+        upload_to_s3("#{path}#{datestamped_file}", backupfile, backup_bucket) 
         remove_out_of_date_backups(backup_bucket, path, backup_type)
       end
     end

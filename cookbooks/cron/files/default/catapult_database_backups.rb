@@ -93,7 +93,7 @@ file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 establish_connection
 conditions.each_pair do |path, condition|
   if condition
-    upload_to_s3("#{path}#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
+    upload_to_s3("#{path}#{datestamped_file}", backupfile, backup_bucket) 
     remove_out_of_date_backups(backup_bucket, path, backupfile)
   end
 end
