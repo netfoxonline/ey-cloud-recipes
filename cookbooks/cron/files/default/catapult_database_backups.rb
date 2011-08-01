@@ -115,5 +115,5 @@ end
 
 date = `date`
 `touch database.drop`
-`echo "backup of production database completed #{date}" > /daily/#{datestamp}/database.drop`
-
+`echo "backup of production database completed #{date}" > database.drop`
+upload_to_s3("/daily/#{datestamp}/database.drop", "database.drop", backup_bucket)
