@@ -96,8 +96,8 @@ def pathstamp(file_name)
   path_name = (`echo #{file_name}.#{datestamp}/`).chomp
 end 
 
-datestamped_file = (`echo #{backupfile}.#{datestamp}`).chomp
-datestamped_path = pathstamp(backup_type)
+datestamped_file = (`echo #{datestamped_ext(backupfile)}`).chomp
+datestamped_path = pathstamp(backupfile)
 conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
 bk_num = (`sudo -i eybackup -e postgresql -l #{backup_type} | grep "#{backup_type}.*pgz" | cut -d":" -f1 | sort -n | tail -1`).chomp
 `sudo -i eybackup -e postgresql -d #{bk_num}:#{backup_type}`
@@ -107,7 +107,7 @@ file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 establish_connection
 conditions.each_pair do |path, condition|
   if condition
-    upload_to_s3("#{path}#{datestamp}#{pathstamp}#{datestamped_file}", backupfile, backup_bucket) 
+    upload_to_s3("#{path}#{datestamp}#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
     remove_out_of_date_backups(backup_bucket, path, backupfile)
     date = `date`
     `echo "backup of production database completed #{date}" > #{path}#{datestamp}/database.drop`
