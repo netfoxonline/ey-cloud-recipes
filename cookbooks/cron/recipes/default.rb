@@ -15,7 +15,7 @@ if node[:instance_role] == 'util'
     minute  '0'
     hour    '9'
     user    'root'
-    command "# cd /mnt/ && sudo ruby /data/backups/catapult_s3_documents_and_answers_backups.rb | sudo tee output.log"
+    command "cd /mnt/ && sudo ruby /data/backups/catapult_s3_documents_and_answers_backups.rb | sudo tee output.log"
   end
 end
 
@@ -57,6 +57,6 @@ if node[:instance_role] == 'app_master'
     minute  '0'
     hour    '9'
     user    'root'
-    command "# ruby /data/backups/catapult_resources_and_source_code_backups.rb"
+    command "ruby /data/backups/catapult_resources_and_source_code_backups.rb"
   end
 end

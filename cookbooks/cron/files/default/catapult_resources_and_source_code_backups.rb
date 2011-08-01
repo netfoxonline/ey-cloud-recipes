@@ -4,8 +4,9 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-backup_bucket = 'catapult-backup'
-backup_type = {"source_code" => "/data/catapult/releases/#{`ls -t /data/catapult/releases/ | head -1`}",
+#backup_bucket = 'catapult-backup'
+backup_bucket = 'catapult-elearning-test-backups'
+backup_type = {"source_code" => "/data/catapult/releases/#{`ls -t /data/catapult/releases/ | head -1`}"
   "resources" => "/data/catapult/shared/resources"}
 
 GIG = 2**30
@@ -29,10 +30,16 @@ def half_year?
   ["Jul", "Jan"].include? date[1] and date[2].to_i == 1
 end
 
+#def establish_connection
+#  AWS::S3::Base.establish_connection!(
+#                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
+#                                      :secret_access_key => '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')
+#end
+
 def establish_connection
   AWS::S3::Base.establish_connection!(
-                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
-                                      :secret_access_key => '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')
+                                      :access_key_id => '0VH2XJ540GSWV8MCBYG2',
+                                      :secret_access_key => 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
 end
 
 def upload_to_s3(filename, backupfile, bucket_name)
@@ -41,14 +48,6 @@ def upload_to_s3(filename, backupfile, bucket_name)
                           bucket_name,
                           :access => :public_read)
 end
-
-def datestamp(file_name)
-  file_name = (`echo #{file_name}.$(date +%Y-%m-%d).tar.bz2`).chomp
-end 
-
-def pathstamp(file_name)
-  path_name = (`echo #{file_name}.$(date +%Y-%m-%d)/`).chomp
-end 
 
 def delete_file(file_to_delete, backup_bucket)
    exists = AWS::S3::S3Object.exists?(file_to_delete, backup_bucket)
@@ -87,11 +86,23 @@ def remove_out_of_date_backups(backup_bucket, path, backup_type)
   end
 end
 
+def datestamp
+ stamp = (`echo $(date +%Y-%m-%d)`).chomp
+end 
+
+def datestamped_ext(file_name)
+  file_name = (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
+end 
+
+def pathstamp(file_name)
+  path_name = (`echo #{file_name}.#{datestamp}/`).chomp
+end 
+
 establish_connection
 conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
 backup_type.each_pair do |backup_type, backup_path|
   backupfile = "#{backup_type}.tar.bz2"
-  datestamped_file = datestamp(backup_type)
+  datestamped_file = datestamp_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
   `tar -cjf #{backupfile} #{backup_path}`
   if File.size(backupfile) > (2*GIG)
@@ -103,7 +114,9 @@ backup_type.each_pair do |backup_type, backup_path|
     conditions.each_pair do |path, condition|
       frag_index = 0
       file_array.each do |backup_fragment|
-        upload_to_s3("#{path}.#{frag_index}", backup_fragment, backup_bucket) if condition
+        upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", 
+                     backupfile, backup_bucket) if condition
+      #  upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket) if condition
         frag_index += 1
       end
       remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
@@ -112,10 +125,15 @@ backup_type.each_pair do |backup_type, backup_path|
   else
     conditions.each_pair do |path, condition|
       if condition
-        upload_to_s3("#{path}#{datestamped_file}", backupfile, backup_bucket) 
+        upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
         remove_out_of_date_backups(backup_bucket, path, backup_type)
       end
     end
   end
   #  %x(rm -rf #{backup_type})
 end
+
+date = `date`
+`touch #{datestamp}.resources.drop`
+`echo "backup of resources and source code completed #{date}" > #{datestamp}.resources.drop`
+upload_to_s3("/daily/#{datestamp}/resources.drop", "#{datestamp}.resources.drop", backup_bucket)

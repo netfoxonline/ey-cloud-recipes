@@ -143,7 +143,7 @@ def do_backup(backup_type, bucket, backup_bucket)
   datestamped_path = pathstamp(backup_type)
   conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
 puts "connecting to Codefire account"
-  connect_to_codefire_account
+#  connect_to_codefire_account
 puts "making directory #{backup_type}"
   FileUtils.mkdir_p backup_type
 puts "changing into directory #{backup_type}"
