@@ -4,7 +4,7 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-backup_bucket = 'catapult-backup'
+backup_bucket = 'catapult-elearning-test-backup'
 backup_type = "catapult_production"
 backupfile = "production_database"
 
@@ -28,10 +28,16 @@ date = `date`.split
 ["Jul", "Jan"].include? date[1] and date[2].to_i == 1
 end
 
+#def establish_connection
+#  AWS::S3::Base.establish_connection!(
+#                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
+#                                      :secret_access_key => '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')
+#end
+
 def establish_connection
   AWS::S3::Base.establish_connection!(
-                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
-                                      :secret_access_key => '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')
+                                      :access_key_id => '0VH2XJ540GSWV8MCBYG2',
+                                      :secret_access_key => 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
 end
 
 def upload_to_s3(filename, backupfile, bucket_name)
@@ -74,15 +80,23 @@ def remove_out_of_date_backups(backup_bucket, path, backupfile)
       file.key =~ %r(#{backupfile})  &&  
       file.inspect =~ %r(#{path})}
     files_to_delete.each {|file_to_delete| delete_file(file_to_delete, backup_bucket) if 
-      number_of_backups >= number_of_backups_to_retain(path)}
+      number_of_backups > number_of_backups_to_retain(path)}
   end
 end
 
-def pathstamp(file_name)
-  path_name = (`echo #{file_name}.$(date +%Y-%m-%d)/`).chomp
+def datestamp
+ stamp = (`echo $(date +%Y-%m-%d)`).chomp
 end 
 
-datestamped_file = (`echo #{backupfile}.$(date +%Y-%m-%d).pgz`).chomp
+def datestamped_ext(file_name)
+  file_name = (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
+end 
+
+def pathstamp(file_name)
+  path_name = (`echo #{file_name}.#{datestamp}/`).chomp
+end 
+
+datestamped_file = (`echo #{backupfile}.#{datestamp}`).chomp
 datestamped_path = pathstamp(backup_type)
 conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
 bk_num = (`sudo -i eybackup -e postgresql -l #{backup_type} | grep "#{backup_type}.*pgz" | cut -d":" -f1 | sort -n | tail -1`).chomp
@@ -93,8 +107,10 @@ file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 establish_connection
 conditions.each_pair do |path, condition|
   if condition
-    upload_to_s3("#{path}#{datestamped_file}", backupfile, backup_bucket) 
+    upload_to_s3("#{path}#{datestamp}#{pathstamp}#{datestamped_file}", backupfile, backup_bucket) 
     remove_out_of_date_backups(backup_bucket, path, backupfile)
+    date = `date`
+    `echo "backup of production database completed #{date}" > #{path}#{datestamp}/database.drop`
   end
 end
 
