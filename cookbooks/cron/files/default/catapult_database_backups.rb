@@ -4,7 +4,7 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-backup_bucket = 'catapult-elearning-test-backup'
+backup_bucket = 'catapult-elearning-test-backups'
 backup_type = "catapult_production"
 backupfile = "production_database"
 
@@ -107,10 +107,13 @@ file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 establish_connection
 conditions.each_pair do |path, condition|
   if condition
-    upload_to_s3("#{path}#{datestamp}#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
+    upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
     remove_out_of_date_backups(backup_bucket, path, backupfile)
-    date = `date`
-    `echo "backup of production database completed #{date}" > #{path}#{datestamp}/database.drop`
   end
 end
+
+
+date = `date`
+`touch database.drop`
+`echo "backup of production database completed #{date}" > /daily/#{datestamp}/database.drop`
 
