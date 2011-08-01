@@ -6,7 +6,7 @@ require 'date'
 
 #backup_bucket = 'catapult-backup'
 backup_bucket = 'catapult-elearning-test-backups'
-backup_type = {"source_code" => "/data/catapult/releases/#{`ls -t /data/catapult/releases/ | head -1`}"
+backup_type = {"source_code" => "/data/catapult/releases/#{`ls -t /data/catapult/releases/ | head -1`}",
   "resources" => "/data/catapult/shared/resources"}
 
 GIG = 2**30
@@ -102,9 +102,9 @@ establish_connection
 conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
 backup_type.each_pair do |backup_type, backup_path|
   backupfile = "#{backup_type}.tar.bz2"
-  datestamped_file = datestamp_ext(backup_type)
+  datestamped_file = datestamped_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
-  `tar -cjf #{backupfile} #{backup_path}`
+#  `tar -cjf #{backupfile} #{backup_path}`
   if File.size(backupfile) > (2*GIG)
     `split -a 2 -d -b 2G #{backupfile} #{backupfile}.`
   end
@@ -116,12 +116,12 @@ backup_type.each_pair do |backup_type, backup_path|
       file_array.each do |backup_fragment|
         upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", 
                      backupfile, backup_bucket) if condition
-      #  upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket) if condition
+        #  upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket) if condition
         frag_index += 1
       end
       remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
     end
-    `rm #{backupfile}.*`
+#    `rm #{backupfile}.*`
   else
     conditions.each_pair do |path, condition|
       if condition

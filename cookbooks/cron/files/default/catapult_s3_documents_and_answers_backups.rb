@@ -4,9 +4,11 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-#bucket = 'catapult-elearning-staging'
-bucket = 'catapult-elearning'
-backup_bucket = "catapult-backup"
+bucket = 'catapult-elearning-staging'
+backup_bucket = "catapult-elearning-test-backups"
+#bucket = 'catapult-elearning'
+#backup_bucket = "catapult-backup"
+
 GIG = 2**30
 
 def connect_to_codefire_account
@@ -79,14 +81,6 @@ def upload_to_s3(filename, backupfile, bucket)
                          :access => :public_read)
 end
 
-def datestamp(file_name)
-  file_name = (`echo #{file_name}.$(date +%Y-%m-%d).tar.bz2`).chomp
-end 
-
-def pathstamp(file_name)
-  path_name = (`echo #{file_name}.$(date +%Y-%m-%d)/`).chomp
-end 
-
 def delete_file(file_to_delete, backup_bucket)
 puts "deleting file #{file_to_delete}"
   exists = AWS::S3::S3Object.exists?(file_to_delete, backup_bucket)
@@ -137,13 +131,25 @@ puts "calling delete_file method" if number_of_backups >= number_of_backups_to_r
   end
 end
 
+def datestamp
+ stamp = (`echo $(date +%Y-%m-%d)`).chomp
+end 
+
+def datestamped_ext(file_name)
+  file_name = (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
+end 
+
+def pathstamp(file_name)
+  path_name = (`echo #{file_name}.#{datestamp}/`).chomp
+end 
+
 def do_backup(backup_type, bucket, backup_bucket)
   backupfile = "#{backup_type}.tar.bz2"
-  datestamped_file = datestamp(backup_type)
+  datestamped_file = datestamped_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
   conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
 puts "connecting to Codefire account"
-#  connect_to_codefire_account
+  connect_to_codefire_account
 puts "making directory #{backup_type}"
   FileUtils.mkdir_p backup_type
 puts "changing into directory #{backup_type}"
@@ -165,7 +171,8 @@ puts "exiting copy obj loop and changing out of dir"
 puts "diconnecting from codefire s3"
   disconnect
 puts "connecting to catapult s3"
- connect_to_catapult_account
+  connect_to_codefire_account
+# connect_to_catapult_account
 puts "tarring #{backup_type}"
  `tar -cjf #{backupfile} #{backup_type}`
   if File.size(backupfile) > (2*GIG)  #issues with AWS handling uploads of files > 2Gb
@@ -183,7 +190,7 @@ puts "Current conditions pair is #{path} #{condition}"
       file_array.each do |backup_fragment|
         if condition
 puts "uploading big #{backup_fragment} to s3 #{path}" 
-          upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket)
+          upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket)
         end
         frag_index += 1
       end
@@ -195,7 +202,7 @@ puts "removing out of date #{backupfile} file fragments from #{path}" if conditi
     conditions.each_pair do |path, condition|
       if condition
 puts "uploading #{backupfile} to s3 #{path}" 
-        upload_to_s3("#{path}#{datestamped_file}", backupfile, backup_bucket) 
+        upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
 puts "removing out of date #{backupfile} files" 
         remove_out_of_date_backups(backup_bucket, path, backup_type) 
       end
@@ -208,3 +215,8 @@ do_backup("documents", bucket, backup_bucket) { |key| key !~ %r{^answers/} && ke
 do_backup("answers", bucket, backup_bucket)   { |key| key =~ %r{^answers/} && key !~ %r{\/$}  } 
 
 
+
+date = `date`
+`touch #{datestamp}.answers.drop`
+`echo "backup of answers and documents completed #{date}" > #{datestamp}.answers.drop`
+upload_to_s3("/daily/#{datestamp}/answers.drop", "#{datestamp}.answers.drop", backup_bucket)
