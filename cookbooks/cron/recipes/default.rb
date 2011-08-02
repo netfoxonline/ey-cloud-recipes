@@ -57,6 +57,6 @@ if node[:instance_role] == 'app_master'
     minute  '0'
     hour    '9'
     user    'root'
-    command "ruby /data/backups/catapult_resources_and_source_code_backups.rb"
+    command "cd /mnt/ && ruby /data/backups/catapult_resources_and_source_code_backups.rb"
   end
 end
