@@ -67,13 +67,13 @@ def number_of_backups_to_retain(type)
 end
 
 def remove_out_of_date_backups(backup_bucket, path, backup_type)
-  date_stamp = 1
+  date_stamp = 2
   establish_connection
   b = get_all_files(backup_bucket) 
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
-    file.inspect =~ %r(#{backup_type})}
+    file.inspect =~ %r(#{backup_type}) && !file.inspect.include?('drop')}
   c = c.map {|s| Date.parse s}
   if !c.empty?
     d=c.sort.uniq
@@ -104,7 +104,7 @@ backup_type.each_pair do |backup_type, backup_path|
   backupfile = "#{backup_type}.tar.bz2"
   datestamped_file = datestamped_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
-#  `tar -cjf #{backupfile} #{backup_path}`
+  `tar -cjf #{backupfile} #{backup_path}`
   if File.size(backupfile) > (2*GIG)
     `split -a 2 -d -b 2G #{backupfile} #{backupfile}.`
   end
@@ -115,13 +115,13 @@ backup_type.each_pair do |backup_type, backup_path|
       frag_index = 0
       file_array.each do |backup_fragment|
         upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", 
-                     backupfile, backup_bucket) if condition
+                     backup_fragment, backup_bucket) if condition
         #  upload_to_s3("#{path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket) if condition
         frag_index += 1
       end
       remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
     end
-#    `rm #{backupfile}.*`
+    `rm #{backupfile}.*`
   else
     conditions.each_pair do |path, condition|
       if condition

@@ -104,15 +104,17 @@ end
 def remove_out_of_date_backups(backup_bucket, path, backupfile)
 puts "entered remove_out_of_date_backups method"
 puts "with path = #{path}"
-  date_stamp = 1
+  date_stamp = 2
 #  establish_connection
   b = get_all_files(backup_bucket) 
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
-    file.inspect =~ %r(#{backupfile})}
+    file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop')} 
 #puts "b.inspect = #{b.inspect}"
 puts "backupfile is #{backupfile}"
+puts "c.inspect -> #{c.inspect}"
+puts "c -> #{c}"
   c = c.map {|s| Date.parse s}
 puts "this is c -> #{c.inspect}"
   if !c.empty?

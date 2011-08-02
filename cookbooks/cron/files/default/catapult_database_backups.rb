@@ -66,13 +66,13 @@ def number_of_backups_to_retain(type)
 end
 
 def remove_out_of_date_backups(backup_bucket, path, backupfile)
-  date_stamp = 1
+  date_stamp = 2
   establish_connection
   b = get_all_files(backup_bucket) 
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) &&
-    file.inspect =~ %r(#{backupfile})}
+    file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop')}
   c = c.map {|s| Date.parse s}
   if !c.empty?
     c=c.sort.uniq
