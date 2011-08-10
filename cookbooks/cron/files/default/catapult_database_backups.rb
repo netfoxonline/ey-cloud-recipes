@@ -66,13 +66,14 @@ def number_of_backups_to_retain(type)
 end
 
 def remove_out_of_date_backups(backup_bucket, path, backupfile)
+  database = 'database'
   date_stamp = 2
   establish_connection
   b = get_all_files(backup_bucket) 
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) &&
-    file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop')}
+    file.inspect =~ %r(#{database}) && !file.inspect.include?('drop')}
   c = c.map {|s| Date.parse s}
   if !c.empty?
     c=c.sort.uniq
@@ -90,7 +91,7 @@ def datestamp
 end 
 
 def datestamped_ext(file_name)
-  file_name = (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
+  file_name = (`echo #{file_name}.#{datestamp}.pgz`).chomp
 end 
 
 def pathstamp(file_name)
