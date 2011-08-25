@@ -153,7 +153,7 @@ def do_backup(backup_type, bucket, backup_bucket)
 puts "connecting to Codefire account"
   connect_to_codefire_account
 puts "making directory #{backup_type}"
-  FileUtils.mkdir_p backup_type
+  Dir.exists?(backup_type) ? FileUtils.mkdir_p backup_type : Process.exit!(true)
 puts "changing into directory #{backup_type}"
   FileUtils.chdir backup_type
   marker_str = ""
