@@ -30,17 +30,17 @@ def half_year?
   ["Jul", "Jan"].include? date[1] and date[2].to_i == 1
 end
 
-#def establish_connection
-#  AWS::S3::Base.establish_connection!(
-#                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
-#                                      :secret_access_key => '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')
-#end
-
 def establish_connection
   AWS::S3::Base.establish_connection!(
-                                      :access_key_id => '0VH2XJ540GSWV8MCBYG2',
-                                      :secret_access_key => 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
+                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
+                                      :secret_access_key => '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')
 end
+
+#def connect_to_codefire_account
+#  AWS::S3::Base.establish_connection!(
+#                                      :access_key_id => '0VH2XJ540GSWV8MCBYG2',
+#                                      :secret_access_key => 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
+#end
 
 def upload_to_s3(filename, backupfile, bucket_name)
   AWS::S3::S3Object.store("#{filename}", 
@@ -73,7 +73,8 @@ def remove_out_of_date_backups(backup_bucket, path, backup_type)
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
-    file.inspect =~ %r(#{backup_type}) && !file.inspect.include?('drop')}
+    file.inspect =~ %r(#{backup_type}) && !file.inspect.include?('drop')
+    && !file.key.split('.')[date_stamp].include?('tar')} 
   c = c.map {|s| Date.parse s}
   if !c.empty?
     d=c.sort.uniq

@@ -5,9 +5,9 @@ require 'fileutils'
 require 'date'
 
 bucket = 'catapult-elearning-staging'
-backup_bucket = "catapult-elearning-test-backups"
+#backup_bucket = "catapult-elearning-test-backups"
 #bucket = 'catapult-elearning'
-#backup_bucket = "catapult-backup"
+backup_bucket = "catapult-backup"
 
 GIG = 2**30
 
@@ -110,8 +110,9 @@ puts "with path = #{path}"
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
-    file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop')} 
-#puts "b.inspect = #{b.inspect}"
+    file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop') 
+    && !file.key.split('.')[date_stamp].include?('tar')} 
+puts "b.inspect = #{b.inspect}"
 puts "backupfile is #{backupfile}"
 puts "c.inspect -> #{c.inspect}"
 puts "c -> #{c}"
@@ -153,7 +154,7 @@ def do_backup(backup_type, bucket, backup_bucket)
 puts "connecting to Codefire account"
   connect_to_codefire_account
 puts "making directory #{backup_type}"
-  Dir.exists?(backup_type) ? FileUtils.mkdir_p backup_type : Process.exit!(true)
+  File.directory?(backup_type) ? Process.exit!(true) : FileUtils.mkdir_p(backup_type)
 puts "changing into directory #{backup_type}"
   FileUtils.chdir backup_type
   marker_str = ""
@@ -173,8 +174,8 @@ puts "exiting copy obj loop and changing out of dir"
 puts "diconnecting from codefire s3"
   disconnect
 puts "connecting to catapult s3"
-  connect_to_codefire_account
-# connect_to_catapult_account
+ connect_to_codefire_account
+  connect_to_catapult_account
 puts "tarring #{backup_type}"
  `tar -cjf #{backupfile} #{backup_type}`
   if File.size(backupfile) > (2*GIG)  #issues with AWS handling uploads of files > 2Gb
