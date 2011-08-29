@@ -121,3 +121,4 @@ dropfile = "#{datestamp}.#{backupfile}.drop"
 `touch dropfile`
 `echo "backup of production #{backupfile} completed #{date}" > dropfile`
 upload_to_s3("/daily/#{datestamp}/#{backupfile}.drop", "dropfile", backup_bucket)
+
