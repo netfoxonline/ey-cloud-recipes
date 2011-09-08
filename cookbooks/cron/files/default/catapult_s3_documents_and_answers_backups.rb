@@ -28,22 +28,21 @@ def disconnect
 end
 
 def daily?
-true
+  true
 end
 
 def sun?
-date = `date`
-!(date =~ /Sun/).nil?
+  !(`date` =~ /Sun/).nil?
 end
 
 def first_day_of_month?
-date = `date`.split
-date[2].to_i == 1
+  date = `date`.split
+  date[2].to_i == 1
 end
 
 def half_year?
-date = `date`.split
-["Jul", "Jan"].include? date[1] and date[2].to_i == 1
+  date = `date`.split
+  ["Jul", "Jan"].include? date[1] and first_day_of_month?
 end
 
 def copy_obj(object, bucket)
@@ -82,68 +81,68 @@ def upload_to_s3(filename, backupfile, bucket)
 end
 
 def delete_file(file_to_delete, backup_bucket)
-puts "deleting file #{file_to_delete}"
+  puts "deleting file #{file_to_delete}"
   exists = AWS::S3::S3Object.exists?(file_to_delete, backup_bucket)
-puts "#{file_to_delete} exists" if exists
+  puts "#{file_to_delete} exists" if exists
   AWS::S3::S3Object.delete(file_to_delete, backup_bucket) if exists
 end
 
 def  get_all_files(backup_bucket) 
-puts "getting all files"
-  b =  AWS::S3::Bucket.find(backup_bucket)
+  puts "getting all files"
+  AWS::S3::Bucket.find(backup_bucket)
 end
 
-def number_of_backups_to_retain(type)
-  f = 7 if type =~ /daily/
-  f = 5 if type =~ /weekly/
-  f = 12 if type =~ /monthly/
-  f = 2 if type =~ /yearly/
+def number_of_backups_to_retain(backup_type)
+  f = 7 if backup_type =~ /daily/
+  f = 5 if backup_type =~ /weekly/
+  f = 12 if backup_type =~ /monthly/
+  f = 2 if backup_type =~ /yearly/
   return f
 end
 
 def remove_out_of_date_backups(backup_bucket, path, backupfile)
-puts "entered remove_out_of_date_backups method"
-puts "with path = #{path}"
+  puts "entered remove_out_of_date_backups method"
+  puts "with path = #{path}"
   date_stamp = 2
-#  establish_connection
+  #  establish_connection
   b = get_all_files(backup_bucket) 
   c=[]
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
     file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop') 
-    && !file.key.split('.')[date_stamp].include?('tar')} 
-puts "b.inspect = #{b.inspect}"
-puts "backupfile is #{backupfile}"
-puts "c.inspect -> #{c.inspect}"
-puts "c -> #{c}"
+    && !file.key.split('.')[date_stamp].include?(/[a-zA-Z]/)} 
+  puts "b.inspect = #{b.inspect}"
+  puts "backupfile is #{backupfile}"
+  puts "c.inspect -> #{c.inspect}"
+  puts "c -> #{c}"
   c = c.map {|s| Date.parse s}
-puts "this is c -> #{c.inspect}"
+  puts "this is c -> #{c.inspect}"
   if !c.empty?
     d=c.sort.uniq
-puts "number of unique dates = #{d.size}"
+    puts "number of unique dates = #{d.size}"
     number_of_backups = d.size
-puts "number of backups is #{d.inspect}"
+    puts "number of backups is #{d.inspect}"
     b.each {|file| files_to_delete.push(file.key) if file.key =~ %r(#{d.first}) && 
       file.key =~ %r(#{backupfile})  &&  
       file.inspect =~ %r(#{path})}
-puts "files to delete = #{files_to_delete.inspect}"
-puts "number_of_backups_to_retain is #{number_of_backups_to_retain(path)}"
-puts "calling delete_file method" if number_of_backups >= number_of_backups_to_retain(path)
+    puts "files to delete = #{files_to_delete.inspect}"
+    puts "number_of_backups_to_retain is #{number_of_backups_to_retain(path)}"
+    puts "calling delete_file method" if number_of_backups >= number_of_backups_to_retain(path)
     files_to_delete.each {|file_to_delete| delete_file(file_to_delete, backup_bucket) if 
       number_of_backups > number_of_backups_to_retain(path)}
   end
 end
 
 def datestamp
- stamp = (`echo $(date +%Y-%m-%d)`).chomp
+  (`echo $(date +%Y-%m-%d)`).chomp
 end 
 
 def datestamped_ext(file_name)
-  file_name = (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
+  (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
 end 
 
 def pathstamp(file_name)
-  path_name = (`echo #{file_name}.#{datestamp}/`).chomp
+  (`echo #{file_name}.#{datestamp}/`).chomp
 end 
 
 def do_backup(backup_type, bucket, backup_bucket)
@@ -151,11 +150,11 @@ def do_backup(backup_type, bucket, backup_bucket)
   datestamped_file = datestamped_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
   conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
-puts "connecting to Codefire account"
+  puts "connecting to Codefire account"
   connect_to_codefire_account
-puts "making directory #{backup_type}"
+  puts "making directory #{backup_type}"
   File.directory?(backup_type) ? Process.exit!(true) : FileUtils.mkdir_p(backup_type)
-puts "changing into directory #{backup_type}"
+  puts "changing into directory #{backup_type}"
   FileUtils.chdir backup_type
   marker_str = ""
   dir_no = 0
@@ -169,45 +168,45 @@ puts "changing into directory #{backup_type}"
     break unless b.is_truncated
     marker_str = b.objects.last.key
   end
-puts "exiting copy obj loop and changing out of dir"
+  puts "exiting copy obj loop and changing out of dir"
   FileUtils.chdir ".."
-puts "diconnecting from codefire s3"
+  puts "diconnecting from codefire s3"
   disconnect
-puts "connecting to catapult s3"
- connect_to_codefire_account
+  puts "connecting to catapult s3"
+  connect_to_codefire_account
   connect_to_catapult_account
-puts "tarring #{backup_type}"
- `tar -cjf #{backupfile} #{backup_type}`
+  puts "tarring #{backup_type}"
+  `tar -cjf #{backupfile} #{backup_type}`
   if File.size(backupfile) > (2*GIG)  #issues with AWS handling uploads of files > 2Gb
-puts "splitting #{backupfile}"
-   `split -a 2 -d -b 2G #{backupfile} #{backupfile}.`
+    puts "splitting #{backupfile}"
+    `split -a 2 -d -b 2G #{backupfile} #{backupfile}.`
   end
   file_array = Dir.entries(Dir.pwd).sort
-puts file_array
- file_array.delete_if {|x| x !~ /bz2.\d/ || x !~ %r(#{backup_type})} #look for any .tar.bzip2 files appended with a .number
-puts "processed file array #{file_array}"
+  puts file_array
+  file_array.delete_if {|x| x !~ /bz2.\d/ || x !~ %r(#{backup_type})} #look for any .tar.bzip2 files appended with a .number
+  puts "processed file array #{file_array}"
   if file_array.size > 0
     conditions.each_pair do |path, condition|
-puts "Current conditions pair is #{path} #{condition}" 
-     frag_index = 0
+      puts "Current conditions pair is #{path} #{condition}" 
+      frag_index = 0
       file_array.each do |backup_fragment|
         if condition
-puts "uploading big #{backup_fragment} to s3 #{path}" 
+          puts "uploading big #{backup_fragment} to s3 #{path}" 
           upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket)
         end
         frag_index += 1
       end
-puts "removing out of date #{backupfile} file fragments from #{path}" if condition
+      puts "removing out of date #{backupfile} file fragments from #{path}" if condition
       remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
     end
     `rm #{backupfile}.*`
   else
     conditions.each_pair do |path, condition|
       if condition
-puts "uploading #{backupfile} to s3 #{path}" 
+        puts "uploading #{backupfile} to s3 #{path}" 
         upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
-puts "removing out of date #{backupfile} files" 
- #       remove_out_of_date_backups(backup_bucket, path, backup_type) 
+        puts "removing out of date #{backupfile} files" 
+        #       remove_out_of_date_backups(backup_bucket, path, backup_type) 
       end
     end
   end
@@ -216,8 +215,6 @@ end
 
 do_backup("documents", bucket, backup_bucket) { |key| key !~ %r{^answers/} && key !~ %r{\/$} } 
 do_backup("answers", bucket, backup_bucket)   { |key| key =~ %r{^answers/} && key !~ %r{\/$}  } 
-
-
 
 date = `date`
 `touch #{datestamp}.answers.drop`

@@ -16,8 +16,7 @@ def daily?
 end
 
 def sun?
-  date = `date`
-  !(date =~ /Sun/).nil?
+  !(`date` =~ /Sun/).nil?
 end
 
 def first_day_of_month?
@@ -27,7 +26,7 @@ end
 
 def half_year?
   date = `date`.split
-  ["Jul", "Jan"].include? date[1] and date[2].to_i == 1
+  ["Jul", "Jan"].include? date[1] and first_day_of_month?
 end
 
 def establish_connection
@@ -35,12 +34,6 @@ def establish_connection
                                       :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
                                       :secret_access_key => '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')
 end
-
-#def connect_to_codefire_account
-#  AWS::S3::Base.establish_connection!(
-#                                      :access_key_id => '0VH2XJ540GSWV8MCBYG2',
-#                                      :secret_access_key => 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
-#end
 
 def upload_to_s3(filename, backupfile, bucket_name)
   AWS::S3::S3Object.store("#{filename}", 
@@ -55,14 +48,14 @@ def delete_file(file_to_delete, backup_bucket)
 end
 
 def  get_all_files(backup_bucket) 
-  b =  AWS::S3::Bucket.find(backup_bucket)
+  AWS::S3::Bucket.find(backup_bucket)
 end
 
-def number_of_backups_to_retain(type)
-  f = 7 if type =~ /daily/
-  f = 5 if type =~ /weekly/
-  f = 12 if type =~ /monthly/
-  f = 2 if type =~ /yearly/
+def number_of_backups_to_retain(backup_type)
+  f = 7 if backup_type =~ /daily/
+  f = 5 if backup_type =~ /weekly/
+  f = 12 if backup_type =~ /monthly/
+  f = 2 if backup_type =~ /yearly/
   return f
 end
 
@@ -74,7 +67,7 @@ def remove_out_of_date_backups(backup_bucket, path, backup_type)
   files_to_delete = []
   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
     file.inspect =~ %r(#{backup_type}) && !file.inspect.include?('drop')
-    && !file.key.split('.')[date_stamp].include?('tar')} 
+    && !file.key.split('.')[date_stamp].include?(/[a-zA-Z]/)} 
   c = c.map {|s| Date.parse s}
   if !c.empty?
     d=c.sort.uniq
@@ -88,15 +81,15 @@ def remove_out_of_date_backups(backup_bucket, path, backup_type)
 end
 
 def datestamp
- stamp = (`echo $(date +%Y-%m-%d)`).chomp
+ (`echo $(date +%Y-%m-%d)`).chomp
 end 
 
 def datestamped_ext(file_name)
-  file_name = (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
+  (`echo #{file_name}.#{datestamp}.tar.bz2`).chomp
 end 
 
 def pathstamp(file_name)
-  path_name = (`echo #{file_name}.#{datestamp}/`).chomp
+  (`echo #{file_name}.#{datestamp}/`).chomp
 end 
 
 establish_connection
