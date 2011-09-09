@@ -107,30 +107,45 @@ def remove_out_of_date_backups(backup_bucket, path, backupfile)
   date_stamp = 2
   #  establish_connection
   b = get_all_files(backup_bucket) 
-  c=[]
+  c = [] # The list of dates representing the files that need to be deleted
   files_to_delete = []
-  b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) && 
-    file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop') 
-    && !file.key.split('.')[date_stamp].include?(/[a-zA-Z]/)} 
+
+  # Build C
+  b.each do |file|
+    if file.inspect =~ %r(#{path}) && file.inspect =~ %r(#{backupfile}) && !file.inspect.include?('drop') && !file.key.split('.')[date_stamp].include?(/[a-zA-Z]/)
+       c.push(file.key.split('.')[date_stamp])
+    end
+  end
   puts "b.inspect = #{b.inspect}"
   puts "backupfile is #{backupfile}"
   puts "c.inspect -> #{c.inspect}"
   puts "c -> #{c}"
-  c = c.map {|s| Date.parse s}
+
+  # Convert c into Date objects
+  c.map! { |s| Date.parse(s) }
+
   puts "this is c -> #{c.inspect}"
-  if !c.empty?
-    d=c.sort.uniq
+
+  # Find and delete old backups
+  unless c.empty?
+    d = c.sort.uniq
     puts "number of unique dates = #{d.size}"
     number_of_backups = d.size
     puts "number of backups is #{d.inspect}"
-    b.each {|file| files_to_delete.push(file.key) if file.key =~ %r(#{d.first}) && 
-      file.key =~ %r(#{backupfile})  &&  
-      file.inspect =~ %r(#{path})}
+
+    files_to_delete = b.select do |file|
+      file.key =~ %r(#{d.first}) && file.key =~ %r(#{backupfile}) && file.inspect =~ %r(#{path})
+    end.map { |file| file.key }
+
     puts "files to delete = #{files_to_delete.inspect}"
     puts "number_of_backups_to_retain is #{number_of_backups_to_retain(path)}"
     puts "calling delete_file method" if number_of_backups >= number_of_backups_to_retain(path)
-    files_to_delete.each {|file_to_delete| delete_file(file_to_delete, backup_bucket) if 
-      number_of_backups > number_of_backups_to_retain(path)}
+
+    files_to_delete.each do |file_to_delete|
+      if number_of_backups > number_of_backups_to_retain(path)
+        delete_file(file_to_delete, backup_bucket)
+      end
+    end
   end
 end
 
