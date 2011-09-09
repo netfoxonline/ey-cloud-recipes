@@ -8,6 +8,7 @@ bucket = 'catapult-elearning-staging'
 #backup_bucket = "catapult-elearning-test-backups"
 #bucket = 'catapult-elearning'
 backup_bucket = "catapult-backup"
+$data_dir = "/mnt/"
 
 GIG = 2**30
 
@@ -153,9 +154,9 @@ def do_backup(backup_type, bucket, backup_bucket)
   puts "connecting to Codefire account"
   connect_to_codefire_account
   puts "making directory #{backup_type}"
-  File.directory?(backup_type) ? Process.exit!(true) : FileUtils.mkdir_p(backup_type)
+  File.directory?(backup_type) ? Process.exit!(true) : FileUtils.mkdir_p("#{$data_dir}#{backup_type}")
   puts "changing into directory #{backup_type}"
-  FileUtils.chdir backup_type
+  FileUtils.chdir ("#{$data_dir}#{backup_type}")
   marker_str = ""
   dir_no = 0
   loop do                                                                        # This loop is due to restrictions
@@ -169,7 +170,7 @@ def do_backup(backup_type, bucket, backup_bucket)
     marker_str = b.objects.last.key
   end
   puts "exiting copy obj loop and changing out of dir"
-  FileUtils.chdir ".."
+  FileUtils.chdir($data_dir)
   puts "diconnecting from codefire s3"
   disconnect
   puts "connecting to catapult s3"
@@ -214,7 +215,7 @@ def do_backup(backup_type, bucket, backup_bucket)
 end
 
 do_backup("documents", bucket, backup_bucket) { |key| key !~ %r{^answers/} && key !~ %r{\/$} } 
-do_backup("answers", bucket, backup_bucket)   { |key| key =~ %r{^answers/} && key !~ %r{\/$}  } 
+do_backup("answers", bucket, backup_bucket)   { |key| key =~ %r{^answers/} && key !~ %r{\/$} } 
 
 date = `date`
 `touch #{datestamp}.answers.drop`

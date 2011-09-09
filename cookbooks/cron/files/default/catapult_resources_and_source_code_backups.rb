@@ -8,6 +8,7 @@ require 'date'
 backup_bucket = 'catapult-elearning-test-backups'
 backup_type = {"source_code" => "/data/catapult/releases/#{`ls -t /data/catapult/releases/ | head -1`}",
   "resources" => "/data/catapult/shared/resources"}
+$data_dir = "/mnt/"
 
 GIG = 2**30
 
@@ -98,6 +99,7 @@ backup_type.each_pair do |backup_type, backup_path|
   backupfile = "#{backup_type}.tar.bz2"
   datestamped_file = datestamped_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
+  FileUtils.chdir($data_dir)
   `tar -cjf #{backupfile} #{backup_path}`
   if File.size(backupfile) > (2*GIG)
     `split -a 2 -d -b 2G #{backupfile} #{backupfile}.`
