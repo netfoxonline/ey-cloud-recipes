@@ -9,6 +9,7 @@ backup_bucket = 'catapult-backup'
 backup_type = "catapult_production"
 backupfile = "production_database"
 
+GIG = 2**30
 
 def daily?
   true
@@ -125,14 +126,6 @@ else
     end
   end
 end
-
-#conditions.each_pair do |path, condition|
-#  if condition
-#    upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
-#    remove_out_of_date_backups(backup_bucket, path, backupfile)
-#  end
-#end
-
 
 date = `date`
 dropfile = "#{datestamp}.#{backupfile}.drop"
