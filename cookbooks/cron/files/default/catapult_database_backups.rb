@@ -102,7 +102,7 @@ file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 `sudo mv #{file} #{backupfile}`
 establish_connection
 if File.size(backupfile) > (2*GIG)
-  `split -a 2 -d -b 2G #{backupfile} #{backupfile}.`
+  `split -a 2 -d -b 2G #{backupfile} #{backupfile}.pgz.`
 end
 file_array = Dir.entries(Dir.pwd).sort
 file_array.delete_if {|x| x !~ /pgz.\d*/}
