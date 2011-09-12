@@ -4,8 +4,8 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-backup_bucket = 'catapult-elearning-test-backups'
-#backup_bucket = 'catapult-backup'
+#backup_bucket = 'catapult-elearning-test-backups'
+backup_bucket = 'catapult-backup'
 backup_type = "catapult_production"
 backupfile = "production_database"
 
