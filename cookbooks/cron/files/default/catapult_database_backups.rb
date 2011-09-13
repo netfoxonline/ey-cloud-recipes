@@ -4,11 +4,12 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-backup_bucket = 'catapult-elearning-test-backups'
-#backup_bucket = 'catapult-backup'
+#backup_bucket = 'catapult-elearning-test-backups'
+backup_bucket = 'catapult-backup'
 backup_type = "catapult_production"
 backupfile = "production_database"
 
+GIG = 2**30
 
 def daily?
   true
@@ -101,13 +102,30 @@ FileUtils.chdir "/mnt/tmp"
 file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 `sudo mv #{file} #{backupfile}`
 establish_connection
-conditions.each_pair do |path, condition|
-  if condition
-    upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
-    remove_out_of_date_backups(backup_bucket, path, backupfile)
+if File.size(backupfile) > (2*GIG)
+  `split -a 2 -d -b 2G #{backupfile} #{backupfile}.pgz.`
+end
+file_array = Dir.entries(Dir.pwd).sort
+file_array.delete_if {|x| x !~ /pgz.\d*/}
+if file_array.size > 0
+  conditions.each_pair do |path, condition|
+    frag_index = 0
+    file_array.each do |backup_fragment|
+      upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", 
+                   backup_fragment, backup_bucket) if condition
+      frag_index += 1
+    end
+    remove_out_of_date_backups(backup_bucket, path, backupfile) if condition
+  end
+  `rm #{backupfile}.*`
+else
+  conditions.each_pair do |path, condition|
+    if condition
+      upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
+      remove_out_of_date_backups(backup_bucket, path, backupfile)
+    end
   end
 end
-
 
 date = `date`
 dropfile = "#{datestamp}.#{backupfile}.drop"

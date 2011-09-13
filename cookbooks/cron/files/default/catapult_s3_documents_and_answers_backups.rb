@@ -230,7 +230,7 @@ def do_backup(backup_type)
         puts "uploading #{backupfile} to s3 #{path}" 
         upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile)
         puts "removing out of date #{backupfile} files" 
-        #       remove_out_of_date_backups(backup_bucket, path, backup_type) 
+        #remove_out_of_date_backups(backup_bucket, path, backup_type) 
       end
     end
   end
