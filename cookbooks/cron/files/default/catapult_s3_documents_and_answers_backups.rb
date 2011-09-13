@@ -1,32 +1,23 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require 'aws/s3'
+require 'aws'
 require 'fileutils'
 require 'date'
+require 'lockfile'
 
-bucket = 'catapult-elearning-staging'
-#backup_bucket = "catapult-elearning-test-backups"
-#bucket = 'catapult-elearning'
-backup_bucket = "catapult-backup"
 $data_dir = "/mnt/"
 
 GIG = 2**30
 
-def connect_to_codefire_account
-  AWS::S3::Base.establish_connection!(
-                                      :access_key_id => '0VH2XJ540GSWV8MCBYG2',
-                                      :secret_access_key => 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
-end
+# CodeFire
+source_account = Aws::S3.new('0VH2XJ540GSWV8MCBYG2', 'XFRQJjMzLIE6071pVQxSu7bKkQ9t1sdLBBfctr8e')
 
-def connect_to_catapult_account
-  AWS::S3::Base.establish_connection!(
-                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
-                                      :secret_access_key => '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')
-end
+  # Catapult
+destination_account = Aws::S3.new('AKIAJN3V2WRSXHZ3YIBA', 'M3TQFP829iFDc8QpBDQhjDXxEaSDE9Z9Lz0BNBhg')
 
-def disconnect
-  AWS::S3::Base.disconnect!
-end
+$source_bucket = source_account.bucket('catapult-elearning-staging')
+$destination_bucket = destination_account.bucket("catapult-backup")
+
 
 def daily?
   true
@@ -46,10 +37,22 @@ def half_year?
   ["Jul", "Jan"].include? date[1] and first_day_of_month?
 end
 
-def copy_obj(object, bucket)
+# TODO: Handle dir limit
+def copy_obj(key)
+  i = 1
+  file_path = "#{i}_#{file_path}" if i.integer? and i >= 1
+  FileUtils.mkdir_p(File.dirname(file_path))
+  unless File.directory?(file_path)
+    open(file_path, 'w') do |file|
+      file.write(key.data)
+    end
+  end
+end
+
+def _copy_obj(key)
   number_of_allowable_subdirs_in_filesystem = 30000
   i = yield/number_of_allowable_subdirs_in_filesystem
-  file_path = object.key.gsub(%r{^/}, '').gsub(%r{/\./}, '/')
+  file_path = key.name.gsub(%r{^/}, '').gsub(%r{/\./}, '/')
   if yield == 30001
     dir_name = file_path.split("/")[0]
     `mv #{dir_name} 0_#{dir_name}`
@@ -58,9 +61,7 @@ def copy_obj(object, bucket)
   FileUtils.mkdir_p(File.dirname(file_path))
   unless File.directory?(file_path)
     open(file_path, 'w') do |file|
-      AWS::S3::S3Object.stream(object.key, bucket) do |chunk|
-        file.write chunk
-      end
+      file.write(key.data)
     end
   end
 end
@@ -74,13 +75,17 @@ def ignored_file?(obj, backup_type)
   regexps_to_ignore.any? { |regexp| obj.key =~ regexp }
 end
 
-def upload_to_s3(filename, backupfile, bucket)
-  AWS::S3::S3Object.store("#{filename}", 
-                          open("#{backupfile}"), 
-                         bucket,
-                         :access => :public_read)
+def upload_to_s3(name, file)
+  puts "Uploading #{name}"
+  key = Aws::S3::Key.create($destination_bucket, name)
+  key.put(open(file))
+  #AWS::S3::S3Object.store("#{filename}", 
+  #                        open("#{backupfile}"), 
+  #                       bucket,
+  #                       :access => :public_read)
 end
 
+# TODO: Refactor to use aws gem
 def delete_file(file_to_delete, backup_bucket)
   puts "deleting file #{file_to_delete}"
   exists = AWS::S3::S3Object.exists?(file_to_delete, backup_bucket)
@@ -88,6 +93,7 @@ def delete_file(file_to_delete, backup_bucket)
   AWS::S3::S3Object.delete(file_to_delete, backup_bucket) if exists
 end
 
+# TODO: Don't think this is used anywhere
 def  get_all_files(backup_bucket) 
   puts "getting all files"
   AWS::S3::Bucket.find(backup_bucket)
@@ -105,7 +111,6 @@ def remove_out_of_date_backups(backup_bucket, path, backupfile)
   puts "entered remove_out_of_date_backups method"
   puts "with path = #{path}"
   date_stamp = 2
-  #  establish_connection
   b = get_all_files(backup_bucket) 
   c = [] # The list of dates representing the files that need to be deleted
   files_to_delete = []
@@ -161,17 +166,23 @@ def pathstamp(file_name)
   (`echo #{file_name}.#{datestamp}/`).chomp
 end 
 
-def do_backup(backup_type, bucket, backup_bucket)
+def do_backup(backup_type)
   backupfile = "#{backup_type}.tar.bz2"
   datestamped_file = datestamped_ext(backup_type)
   datestamped_path = pathstamp(backup_type)
   conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
-  puts "connecting to Codefire account"
-  connect_to_codefire_account
   puts "making directory #{backup_type}"
-  File.directory?(backup_type) ? Process.exit!(true) : FileUtils.mkdir_p("#{$data_dir}#{backup_type}")
+  FileUtils.mkdir_p("#{$data_dir}#{backup_type}")
   puts "changing into directory #{backup_type}"
   FileUtils.chdir ("#{$data_dir}#{backup_type}")
+  
+  puts "Querying Source Bucket"
+  $source_bucket.keys('prefix' => backup_type).each do |key|
+    puts key
+    copy_obj(key)
+  end
+
+=begin
   marker_str = ""
   dir_no = 0
   loop do                                                                        # This loop is due to restrictions
@@ -184,13 +195,10 @@ def do_backup(backup_type, bucket, backup_bucket)
     break unless b.is_truncated
     marker_str = b.objects.last.key
   end
+=end
+
   puts "exiting copy obj loop and changing out of dir"
   FileUtils.chdir($data_dir)
-  puts "diconnecting from codefire s3"
-  disconnect
-  puts "connecting to catapult s3"
-  connect_to_codefire_account
-  connect_to_catapult_account
   puts "tarring #{backup_type}"
   `tar -cjf #{backupfile} #{backup_type}`
   if File.size(backupfile) > (2*GIG)  #issues with AWS handling uploads of files > 2Gb
@@ -208,19 +216,19 @@ def do_backup(backup_type, bucket, backup_bucket)
       file_array.each do |backup_fragment|
         if condition
           puts "uploading big #{backup_fragment} to s3 #{path}" 
-          upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", backup_fragment, backup_bucket)
+          upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", backup_fragment)
         end
         frag_index += 1
       end
       puts "removing out of date #{backupfile} file fragments from #{path}" if condition
-      remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
+      #remove_out_of_date_backups(backup_bucket, path, backup_type) if condition
     end
     `rm #{backupfile}.*`
   else
     conditions.each_pair do |path, condition|
       if condition
         puts "uploading #{backupfile} to s3 #{path}" 
-        upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
+        upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile)
         puts "removing out of date #{backupfile} files" 
         #       remove_out_of_date_backups(backup_bucket, path, backup_type) 
       end
@@ -229,10 +237,19 @@ def do_backup(backup_type, bucket, backup_bucket)
   %x(rm -rf #{backup_type})
 end
 
-do_backup("documents", bucket, backup_bucket) { |key| key !~ %r{^answers/} && key !~ %r{\/$} } 
-do_backup("answers", bucket, backup_bucket)   { |key| key =~ %r{^answers/} && key !~ %r{\/$} } 
+lockfile = Lockfile.new("#{$data_dir}/backup.lock")
+begin
+  lockfile.lock
+  do_backup("documents")# { |key| key !~ %r{^answers/} && key !~ %r{\/$} } 
+  do_backup("answers")#   { |key| key =~ %r{^answers/} && key !~ %r{\/$} } 
 
-date = `date`
-`touch #{datestamp}.answers.drop`
-`echo "backup of answers and documents completed #{date}" > #{datestamp}.answers.drop`
-upload_to_s3("/daily/#{datestamp}/answers.drop", "#{datestamp}.answers.drop", backup_bucket)
+  date = `date`
+  `touch #{datestamp}.answers.drop`
+  `echo "backup of answers and documents completed #{date}" > #{datestamp}.answers.drop`
+  upload_to_s3("/daily/#{datestamp}/answers.drop", "#{datestamp}.answers.drop")
+rescue
+  puts $!
+  puts $!.backtrace
+ensure
+  lockfile.unlock
+end
