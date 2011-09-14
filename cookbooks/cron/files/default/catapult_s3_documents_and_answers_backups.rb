@@ -124,11 +124,13 @@ class S3Backup
     
     cd(@datadir) do
       @source_bucket.keys('prefix' => options[:prefix]).each do |key|
-        if !block_given? || yield(key.name)
-          log.info("Backing up #{key.name}")
-          tempfile = copy_obj(key)
-          add_to_tar(tarfile, tempfile)
-          rm_temp(tempfile)
+        if process_key?(key)
+          if !block_given? || yield(key.name)
+            log.info("Backing up #{key.name}")
+            tempfile = copy_obj(key)
+            add_to_tar(tarfile, tempfile)
+            rm_temp(tempfile)
+          end
         end
       end
     end
@@ -145,6 +147,11 @@ class S3Backup
   end
   
 private
+  def process_key?(key)
+     # There are some keys that end in / - don't allow them
+    return key.name !~ /\/$/
+  end
+  
   def copy_obj(key)
     file_path = key.name
     FileUtils.mkdir_p(File.dirname(file_path))
