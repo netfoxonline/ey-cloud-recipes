@@ -86,7 +86,8 @@ class S3Backup
     @timestamp.extend(BackupSchedule)
     
     if block_given?
-      Lockfile.new("#{$data_dir}/backup.lock").lock do
+      # TODO Make lockfile name a parameter
+      Lockfile.new("#{@datadir}/backup.lock").lock do
         begin
           instance_eval(&block)
           write_drop_file
