@@ -92,6 +92,7 @@ class S3Backup
           write_drop_file
         rescue Exception => e
           log.fatal("Exception occured: #{e}")
+          log.fatal(e.join("\n"))
         end
       end
     end
