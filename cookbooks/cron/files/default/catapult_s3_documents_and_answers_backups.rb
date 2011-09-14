@@ -141,6 +141,7 @@ class S3Backup
     archive_file = compress(tarfile)
     save_to_s3(archive_file)
     save_to_s3(contents_file)
+    rm(archive_file)
   end
   
 private
@@ -182,7 +183,7 @@ private
   end
   
   def compress(file)
-    `bzip2 #{file}`
+    `bzip2 -f #{file}`
     return "#{file}.bz2"
   end
   
