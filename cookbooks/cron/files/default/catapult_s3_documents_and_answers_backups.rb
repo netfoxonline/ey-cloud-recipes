@@ -122,15 +122,43 @@ class S3Backup
     tarfile = File.join(@datadir, "#{set_name}.tar")
     log.info("Querying Source Bucket")
     
+    # We need to use the low-level S3 interface here,
+    # the buckets are too large to use bucket.keys
+    # and we want to stream object contents directly
+    # to the disk.
+    #
+    s3 = @source_bucket.s3.interface
+
     cd(@datadir) do
-      @source_bucket.keys('prefix' => options[:prefix]).each do |key|
-        if process_key?(key)
-          if !block_given? || yield(key.name)
-            log.info("Backing up #{key.name}")
-            tempfile = copy_obj(key)
-            add_to_tar(tarfile, tempfile)
-            rm_temp(tempfile)
+      s3.incrementally_list_bucket(@source_bucket.name, 'prefix' => options[:prefix]) do |content|
+        saved_files = []
+
+        log.info("Starting new batch of #{content[:contents].size}")
+
+        content[:contents].each do |obj|
+          key = obj[:key]
+          if process_key?(key)
+            if !block_given? || yield(key)
+              log.info("Backing up #{key}")
+              saved_files << copy_obj(s3, @source_bucket.name, key)
+            end
           end
+        end
+
+        # Output the list of saved files to
+        # filelist.txt. This will be used as
+        # the input to tar so we don't hit a
+        # command line argument limit.
+        File.open("filelist.txt", 'w') do |f|
+          f << saved_files.join("\n")
+        end
+
+        log.info("Adding #{saved_files.size} files to tar #{tarfile}")
+        add_to_tar(tarfile, "filelist.txt")
+
+        log.info("Removing temporary files")
+        saved_files.each do |f|
+          rm_temp(f)
         end
       end
     end
@@ -149,22 +177,24 @@ class S3Backup
 private
   def process_key?(key)
      # There are some keys that end in / - don't allow them
-    return key.name !~ /\/$/
+    return key !~ /\/$/
   end
   
-  def copy_obj(key)
-    file_path = key.name
+  def copy_obj(s3, bucket, key)
+    file_path = key
     FileUtils.mkdir_p(File.dirname(file_path))
     unless File.directory?(file_path)
       open(file_path, 'w') do |file|
-        file.write(key.data)
+        s3.get(bucket, key) do |data|
+          file.write(data)
+        end
       end
     end
     return file_path
   end
   
   def add_to_tar(tarfile, infile)
-    `tar -rf #{tarfile} "#{infile}"`
+    `tar -rf #{tarfile} -T "#{infile}"`
   end
   
   # Remove a file and it's parent directories while they are empty
@@ -244,7 +274,7 @@ destination_account = Aws::S3.new(
 )
 
 source_bucket = source_account.bucket('catapult-elearning-staging')
-destination_bucket = destination_account.bucket("catapult-backup")
+destination_bucket = destination_account.bucket("catapult-backup-staging")
 
 S3Backup.new(source_bucket, destination_bucket, data_dir) do
   backup("answers", :prefix => "answers")
