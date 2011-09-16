@@ -86,14 +86,14 @@ class S3Backup
     @timestamp.extend(BackupSchedule)
     
     if block_given?
-      # TODO Make lockfile name a parameter
+      # TODO Parameterise lock file
       Lockfile.new("#{@datadir}/backup.lock").lock do
         begin
           instance_eval(&block)
           write_drop_file
         rescue Exception => e
           log.fatal("Exception occured: #{e}")
-          log.fatal(e.join("\n"))
+          log.fatal(e.backtrace.join("\n"))
         end
       end
     end
@@ -146,33 +146,30 @@ class S3Backup
           end
         end
 
-        # Output the list of saved files to
-        # filelist.txt. This will be used as
-        # the input to tar so we don't hit a
-        # command line argument limit.
-        File.open("filelist.txt", 'w') do |f|
-          f << saved_files.join("\n")
-        end
+        unless saved_files.empty?
+          # Output the list of saved files to
+          # filelist.txt. This will be used as
+          # the input to tar so we don't hit a
+          # command line argument limit.
+          File.open("filelist.txt", 'w') do |f|
+            f << saved_files.join("\n")
+          end
 
-        log.info("Adding #{saved_files.size} files to tar #{tarfile}")
-        add_to_tar(tarfile, "filelist.txt")
+          log.info("Adding #{saved_files.size} files to tar #{tarfile}")
+          add_to_tar(tarfile, "filelist.txt")
 
-        log.info("Removing temporary files")
-        saved_files.each do |f|
-          rm_temp(f)
+          log.info("Removing temporary files")
+          saved_files.each do |f|
+            rm_temp(f)
+          end
         end
       end
     end
     
-    contents_file = "#{tarfile}.contents.txt"
-    File.open(contents_file, "w") do |cnts|
-      cnts << list_contents(tarfile)
-    end
-    
+    save_contents_file(tarfile)    
     archive_file = compress(tarfile)
-    save_to_s3(archive_file)
-    save_to_s3(contents_file)
-    rm(archive_file)
+    split_pattern = split(archive_file)
+    save_files_to_s3(split_pattern)
   end
   
 private
@@ -221,8 +218,27 @@ private
   end
   
   def compress(file)
-    `bzip2 -f #{file}`
-    return "#{file}.bz2"
+    `gzip -f #{file}`
+    return "#{file}.gz"
+  end
+  
+  def split(file)
+    `split -b 500M -d #{file} #{file}.`
+    return "#{file}.*"
+  end
+  
+  def save_contents_file(tarfile)
+    contents_file = "#{tarfile}.contents.txt"
+    File.open(contents_file, "w") do |cnts|
+      cnts << list_contents(tarfile)
+    end
+    save_to_s3(contents_file)
+  end
+  
+  def save_files_to_s3(pattern)    
+    Dir[pattern].each do |f|
+       save_to_s3(f)
+    end
   end
   
   def save_to_s3(file)
@@ -258,7 +274,7 @@ private
   end
 end
 
-data_dir = "/mnt"
+data_dir = "/mnt/backups"
 
 # CodeFire
 source_account = Aws::S3.new(
