@@ -126,7 +126,7 @@ node[:applications].each do |app_name,data|
     end
 
     execute "grant-perms-on-#{db_name}-to-#{user[:username]}" do
-      command "/usr/bin/psql -c 'grant all on database #{db_name} to #{user[:username]}'"
+      command "/usr/bin/psql -c 'grant all on database \"#{db_name}\" to #{user[:username]}'"
       action :run
       user 'postgres'
     end
