@@ -13,7 +13,7 @@ restore_date = ARGV[0]
 environment_name = ARGV[1]
 
 if restore_date !~ /\d\d\d\d-\d\d-\d\d/ || environment_name.nil?
-  puts "Usage catapult_resources_restore.rb <restore-date(yyyy-mm-dd)> <environment-name>"
+  puts "Usage: catapult_resources_restore.rb <restore-date(yyyy-mm-dd)> <environment-name>"
   exit(1)
 end
 

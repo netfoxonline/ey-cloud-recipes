@@ -15,7 +15,7 @@ restore_date = ARGV[0]
 target_bucket_name = ARGV[1]
 
 if restore_date !~ /\d\d\d\d-\d\d-\d\d/ || target_bucket_name.nil?
-  puts "Usage catapult_answers_restore.rb <restore-date(yyyy-mm-dd)> <target-bucket-name>"
+  puts "Usage: catapult_answers_restore.rb <restore-date(yyyy-mm-dd)> <target-bucket-name>"
   exit(1)
 end
 
