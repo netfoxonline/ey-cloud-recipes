@@ -6,22 +6,18 @@ require 'date'
 
 include FileUtils
 
-environment_name = 'CatapultRecoveryTest' # TODO parameterise
-target_bucket_name = 'catapult-restore-test' # TODO parameterise
 temp_directory = '/mnt/restore/answers'
 extracted_dir = File.join(temp_directory, 'extracted')
 mkdir_p(temp_directory)
 mkdir_p(extracted_dir)
 
-# TODO extract common code
-#
-restore_date = if ARGV.first =~ /\d\d\d\d-\d\d-\d\d/
-  ARGV.first
-else
-  puts "Please specify the restore date like 'yyyy-mm-dd' not #{ARGV.first}"
+restore_date = ARGV[0]
+target_bucket_name = ARGV[1]
+
+if restore_date !~ /\d\d\d\d-\d\d-\d\d/ || target_bucket_name.nil?
+  puts "Usage catapult_answers_restore.rb <restore-date(yyyy-mm-dd)> <target-bucket-name>"
   exit(1)
 end
-
 
 acct = Aws::S3.new(
   'AKIAJN3V2WRSXHZ3YIBA', 

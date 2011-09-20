@@ -6,14 +6,14 @@ require 'date'
 
 include FileUtils
 
-environment_name = 'CatapultRecoveryTest' # TODO parameterise
 temp_directory = '/mnt/restore/db'
 mkdir_p(temp_directory)
 
-restore_date = if ARGV.first =~ /\d\d\d\d-\d\d-\d\d/
-  ARGV.first
-else
-  puts "Please specify the restore date like 'yyyy-mm-dd' not #{ARGV.first}"
+restore_date = ARGV[0]
+environment_name = ARGV[1]
+
+if restore_date !~ /\d\d\d\d-\d\d-\d\d/ || environment_name.nil?
+  puts "Usage catapult_resources_restore.rb <restore-date(yyyy-mm-dd)> <environment-name>"
   exit(1)
 end
 
@@ -38,7 +38,4 @@ File.open(File.join(temp_directory, 'catapult_production.pgz'), 'w+') do |f|
 end
 
 puts "Restoring database"
-
-# TODO parameterise the DB name
-#
 `sudo -u postgres pg_restore -d #{environment_name}_production #{File.join(temp_directory, 'catapult_production.pgz')}`

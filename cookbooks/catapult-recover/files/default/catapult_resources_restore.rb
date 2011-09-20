@@ -6,19 +6,17 @@ require 'date'
 
 include FileUtils
 
-environment_name = 'CatapultRecoveryTest' # TODO parameterise
 temp_directory = '/mnt/restore/resources'
 extracted_dir = File.join(temp_directory, 'extracted')
 mkdir_p(temp_directory)
 mkdir_p(extracted_dir)
+restore_date = ARGV[0]
+environment_name = ARGV[1]
 
-restore_date = if ARGV.first =~ /\d\d\d\d-\d\d-\d\d/
-  ARGV.first
-else
-  puts "Please specify the restore date like 'yyyy-mm-dd' not #{ARGV.first}"
+if restore_date !~ /\d\d\d\d-\d\d-\d\d/ || environment_name.nil?
+  puts "Usage catapult_resources_restore.rb <restore-date(yyyy-mm-dd)> <environment-name>"
   exit(1)
 end
-
 
 acct = Aws::S3.new(
   'AKIAJN3V2WRSXHZ3YIBA', 
@@ -29,7 +27,7 @@ acct = Aws::S3.new(
 backup_bucket = acct.bucket("catapult-backup")
 prefix = "daily/#{restore_date}/resources.tar.bz2."
 
-# Read each object in order and write to the catapult_production.pgz file... saves manually cat'ing
+# Read each object in order and write to the resources.tar.bz2 file... saves manually cat'ing
 #
 File.open(File.join(temp_directory, 'resources.tar.bz2'), 'w+') do |f|
   backup_bucket.keys(:prefix => prefix).each do |key|
