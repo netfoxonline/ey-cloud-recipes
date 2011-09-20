@@ -48,7 +48,8 @@ cd(extracted_dir) do
   Dir.glob("**/*") do |file| 
     if File.file?(file)
       puts "Uploading #{file} to #{file}"
-      target_bucket.put(file, File.open(file))
+      perms = 'public-read' if file =~ /^logos\//
+      target_bucket.put(file, File.open(file), perms)
     end
   end
 end
