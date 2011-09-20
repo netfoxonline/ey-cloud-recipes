@@ -4,12 +4,19 @@ require 'aws/s3'
 require 'fileutils'
 require 'date'
 
-#backup_bucket = 'catapult-elearning-test-backups'
-backup_bucket = 'catapult-backup'
+#backup_bucket_name = 'catapult-elearning-test-backups'
+backup_bucket_name = 'catapult-backup'
 backup_type = "catapult_production"
 backupfile = "production_database"
 
-GIG = 2**30
+# Catapult
+destination_account = Aws::S3.new(
+  'AKIAJN3V2WRSXHZ3YIBA', 
+  'M3TQFP829iFDc8QpBDQhjDXxEaSDE9Z9Lz0BNBhg', 
+  :connection_mode => :single
+)
+
+destination_bucket = destination_account.bucket(backup_bucket_name)
 
 def daily?
   true
@@ -29,57 +36,50 @@ def half_year?
   ["Jul", "Jan"].include? date[1] and first_day_of_month?
 end
 
-def establish_connection
-  AWS::S3::Base.establish_connection!(
-                                      :access_key_id => 'AKIAJN3V2WRSXHZ3YIBA',
-                                      :secret_access_key => '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')
+def upload_to_s3(filename, backupfile)
+  key = Aws::S3::Key.create(destination_bucket, filename)
+  key.put(File.open(backupfile))
 end
 
-def upload_to_s3(filename, backupfile, bucket_name)
-  AWS::S3::S3Object.store("#{filename}", 
-                          open("#{backupfile}"), 
-                          bucket_name,
-                          :access => :public_read)
-end
-
-def delete_file(file_to_delete, backup_bucket)
-  exists = AWS::S3::S3Object.exists?(file_to_delete, backup_bucket)
-  AWS::S3::S3Object.delete(file_to_delete, backup_bucket) if exists
-end
-
-def  get_all_files(backup_bucket) 
-  AWS::S3::Bucket.find(backup_bucket)
-end
-
-def number_of_backups_to_retain(backup_type)
-  f = 7 if backup_type =~ /daily/
-  f = 5 if backup_type =~ /weekly/
-  f = 12 if backup_type =~ /monthly/
-  f = 2 if backup_type =~ /yearly/
-  return f
-end
-
-def remove_out_of_date_backups(backup_bucket, path, backupfile)
-  database = 'database'
-  date_stamp = 2
-  establish_connection
-  b = get_all_files(backup_bucket) 
-  c=[]
-  files_to_delete = []
-  b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) &&
-    file.inspect =~ %r(#{database}) && !file.inspect.include?('drop') && 
-    !file.key.split('.')[date_stamp].include?(/[a-zA-z]/)}
-  c = c.map {|s| Date.parse s}
-  if !c.empty?
-    c=c.sort.uniq
-    number_of_backups = c.size
-    b.each {|file| files_to_delete.push(file.key) if file.key =~ %r(#{c.first}) && 
-      file.key =~ %r(#{backupfile})  &&  
-      file.inspect =~ %r(#{path})}
-    files_to_delete.each {|file_to_delete| delete_file(file_to_delete, backup_bucket) if 
-      number_of_backups > number_of_backups_to_retain(path)}
-  end
-end
+# 
+# def delete_file(file_to_delete, backup_bucket)
+#   exists = AWS::S3::S3Object.exists?(file_to_delete, backup_bucket)
+#   AWS::S3::S3Object.delete(file_to_delete, backup_bucket) if exists
+# end
+# 
+# def  get_all_files(backup_bucket) 
+#   AWS::S3::Bucket.find(backup_bucket)
+# end
+# 
+# def number_of_backups_to_retain(backup_type)
+#   f = 7 if backup_type =~ /daily/
+#   f = 5 if backup_type =~ /weekly/
+#   f = 12 if backup_type =~ /monthly/
+#   f = 2 if backup_type =~ /yearly/
+#   return f
+# end
+# 
+# def remove_out_of_date_backups(backup_bucket, path, backupfile)
+#   database = 'database'
+#   date_stamp = 2
+#   establish_connection
+#   b = get_all_files(backup_bucket) 
+#   c=[]
+#   files_to_delete = []
+#   b.each {|file| c.push(file.key.split('.')[date_stamp]) if file.inspect =~ %r(#{path}) &&
+#     file.inspect =~ %r(#{database}) && !file.inspect.include?('drop') && 
+#     !file.key.split('.')[date_stamp].include?(/[a-zA-z]/)}
+#   c = c.map {|s| Date.parse s}
+#   if !c.empty?
+#     c=c.sort.uniq
+#     number_of_backups = c.size
+#     b.each {|file| files_to_delete.push(file.key) if file.key =~ %r(#{c.first}) && 
+#       file.key =~ %r(#{backupfile})  &&  
+#       file.inspect =~ %r(#{path})}
+#     files_to_delete.each {|file_to_delete| delete_file(file_to_delete, backup_bucket) if 
+#       number_of_backups > number_of_backups_to_retain(path)}
+#   end
+# end
 
 def datestamp
  (`echo $(date +%Y-%m-%d)`).chomp
@@ -101,10 +101,7 @@ bk_num = (`sudo -i eybackup -e postgresql -l #{backup_type} | grep "#{backup_typ
 FileUtils.chdir "/mnt/tmp"
 file = (`ls -tr #{backup_type}.*.pgz | tail -1`).chomp
 `sudo mv #{file} #{backupfile}`
-establish_connection
-if File.size(backupfile) > (2*GIG)
-  `split -a 2 -d -b 2G #{backupfile} #{backupfile}.pgz.`
-end
+`split -a 2 -d -b 500M #{backupfile} #{backupfile}.pgz.`
 file_array = Dir.entries(Dir.pwd).sort
 file_array.delete_if {|x| x !~ /pgz.\d*/}
 if file_array.size > 0
@@ -112,17 +109,17 @@ if file_array.size > 0
     frag_index = 0
     file_array.each do |backup_fragment|
       upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}.#{frag_index}", 
-                   backup_fragment, backup_bucket) if condition
+                   backup_fragment) if condition
       frag_index += 1
     end
-    remove_out_of_date_backups(backup_bucket, path, backupfile) if condition
+   # remove_out_of_date_backups(backup_bucket, path, backupfile) if condition
   end
   `rm #{backupfile}.*`
 else
   conditions.each_pair do |path, condition|
     if condition
       upload_to_s3("#{path}#{datestamp}/#{datestamped_path}#{datestamped_file}", backupfile, backup_bucket) 
-      remove_out_of_date_backups(backup_bucket, path, backupfile)
+   #    remove_out_of_date_backups(backup_bucket, path, backupfile)
     end
   end
 end

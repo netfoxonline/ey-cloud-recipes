@@ -1,7 +1,13 @@
 if node[:instance_role] == 'util'
- directory "/data/backups" do
+  directory "/data/backups" do
     owner "root"
     group "root"
+    mode "0755"
+    action :create
+  end
+  directory "/mnt/backups" do
+    owner "deploy"
+    group "deploy"
     mode "0755"
     action :create
   end
@@ -14,8 +20,9 @@ if node[:instance_role] == 'util'
   cron "daily_s3_backups" do
     minute  '0'
     hour    '9'
+    weekday '2,4,6'
     user    'root'
-    command "sudo ruby /data/backups/catapult_s3_documents_and_answers_backups.rb | sudo tee output.log"
+    command "ruby /data/backups/catapult_s3_documents_and_answers_backups.rb | tee output.log"
   end
 end
 
@@ -23,6 +30,12 @@ if node[:instance_role] == 'db_master'
  directory "/data/backups" do
     owner "root"
     group "root"
+    mode "0755"
+    action :create
+  end
+  directory "/mnt/backups" do
+    owner "deploy"
+    group "deploy"
     mode "0755"
     action :create
   end
@@ -35,6 +48,7 @@ if node[:instance_role] == 'db_master'
   cron "daily_db_backups" do
     minute  '0'
     hour    '9'
+    weekday '2,4,6'
     user    'root'
     command "ruby /data/backups/catapult_database_backups.rb"
   end
@@ -47,6 +61,12 @@ if node[:instance_role] == 'app_master'
     mode "0755"
     action :create
   end
+  directory "/mnt/backups" do
+    owner "deploy"
+    group "deploy"
+    mode "0755"
+    action :create
+  end
   remote_file "/data/backups/catapult_resources_and_source_code_backups.rb" do
     source "catapult_resources_and_source_code_backups.rb"
     owner "root"
@@ -56,6 +76,7 @@ if node[:instance_role] == 'app_master'
  cron "daily_app_backups" do
     minute  '0'
     hour    '9'
+    weekday '2,4,6'
     user    'root'
     command "ruby /data/backups/catapult_resources_and_source_code_backups.rb"
   end
