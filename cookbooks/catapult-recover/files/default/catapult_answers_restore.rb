@@ -50,10 +50,10 @@ end
 # intermediate directories under answers that are derived from the first 3
 # digits of the id folder of the file.
 #
-regex = %!',answers/\([0-9]\{3\}\),answers/\1/\1,'!
+regex = %!'s,answers/\\([0-9]\\{3\\}\\),answers/\\1/\\1,'!
 
 puts "Extracting data"
-`tar -xjf #{File.join(temp_directory, 'answers.tar.bz2')} -C #{extracted_dir} --transform=#{regex}`
+`tar -xvjf #{File.join(temp_directory, 'answers.tar.bz2')} -C #{extracted_dir} --transform=#{regex} --show-transformed-names`
 
 
 cd(extracted_dir) do
