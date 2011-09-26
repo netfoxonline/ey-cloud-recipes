@@ -170,6 +170,9 @@ class S3Backup
     archive_file = compress(tarfile)
     split_pattern = split(archive_file)
     save_files_to_s3(split_pattern)
+    Dir[split_pattern].each do |f|
+      rm(f)
+    end
   end
   
 private
