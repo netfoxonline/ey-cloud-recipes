@@ -16,7 +16,7 @@ destination_account = Aws::S3.new(
   :connection_mode => :single
 )
 
-destination_bucket = destination_account.bucket(backup_bucket_name)
+$destination_bucket = destination_account.bucket(backup_bucket_name)
 
 def daily?
   true
@@ -38,7 +38,7 @@ end
 
 
 def upload_to_s3(filename, backupfile)
-  key = Aws::S3::Key.create(destination_bucket, filename)
+  key = Aws::S3::Key.create($destination_bucket, filename)
   key.put(File.open(backupfile))
 end
 
@@ -93,7 +93,7 @@ def pathstamp(file_name)
 end 
 
 FileUtils.cd($data_dir) do
-  conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
+  conditions = { "daily/" => daily?, "weekly/" => sun?, "monthly/" => first_day_of_month?, "bi_yearly/" => half_year?}
   backup_type.each_pair do |backup_type, backup_path|
     backupfile = "#{backup_type}.tar.bz2"
     datestamped_file = datestamped_ext(backup_type)

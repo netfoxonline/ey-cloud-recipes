@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require 'aws/s3'
+require 'aws'
 require 'fileutils'
 require 'date'
 
@@ -16,7 +16,7 @@ destination_account = Aws::S3.new(
   :connection_mode => :single
 )
 
-destination_bucket = destination_account.bucket(backup_bucket_name)
+$destination_bucket = destination_account.bucket(backup_bucket_name)
 
 def daily?
   true
@@ -37,7 +37,7 @@ def half_year?
 end
 
 def upload_to_s3(filename, backupfile)
-  key = Aws::S3::Key.create(destination_bucket, filename)
+  key = Aws::S3::Key.create($destination_bucket, filename)
   key.put(File.open(backupfile))
 end
 
@@ -95,7 +95,7 @@ end
 
 datestamped_file = (`echo #{datestamped_ext(backupfile)}`).chomp
 datestamped_path = pathstamp(backupfile)
-conditions = { "/daily/" => daily?, "/weekly/" => sun?, "/monthly/" => first_day_of_month?, "/bi_yearly/" => half_year?}
+conditions = { "daily/" => daily?, "weekly/" => sun?, "monthly/" => first_day_of_month?, "bi_yearly/" => half_year?}
 bk_num = (`sudo -i eybackup -e postgresql -l #{backup_type} | grep "#{backup_type}.*pgz" | cut -d":" -f1 | sort -n | tail -1`).chomp
 `sudo -i eybackup -e postgresql -d #{bk_num}:#{backup_type}`
 FileUtils.chdir "/mnt/tmp"
