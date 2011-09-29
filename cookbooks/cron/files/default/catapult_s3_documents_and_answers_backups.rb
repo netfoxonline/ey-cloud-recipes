@@ -72,9 +72,11 @@ end
 #
 class S3Backup
   include FileUtils
-  attr_reader :log
+  MaxRepeatedErrors = 10
+  attr_reader :log, :error_log
   
-  def initialize(source_bucket, dest_bucket, datadir, &block)    
+  def initialize(source_bucket, dest_bucket, datadir, &block)
+    @error_log = Logger.new(File.open('backup-error.log', 'w+'))
     @log = Logger.new(STDOUT)
     @source_bucket = source_bucket
     @dest_bucket   = dest_bucket
@@ -131,6 +133,8 @@ class S3Backup
     s3 = @source_bucket.s3.interface
 
     cd(@datadir) do
+      error_count = 0
+
       s3.incrementally_list_bucket(@source_bucket.name, 'prefix' => options[:prefix]) do |content|
         saved_files = []
 
@@ -140,8 +144,19 @@ class S3Backup
           key = obj[:key]
           if process_key?(key)
             if !block_given? || yield(key)
-              log.info("Backing up #{key}")
-              saved_files << copy_obj(s3, @source_bucket.name, key)
+              begin
+                log.info("Backing up #{key}")
+                saved_files << copy_obj(s3, @source_bucket.name, key)
+                error_count = 0
+              rescue => e
+                error_log.warn("Error backing up '#{key}': #{e}")
+                if error_count += 1 > MaxRepeatedErrors
+                  raise e
+                else
+                  log.warn("Error backing up '#{key}': #{e}")
+                  sleep(error_count * 2)
+                end
+              end
             end
           end
         end
