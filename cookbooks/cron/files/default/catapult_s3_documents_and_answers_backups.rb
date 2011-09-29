@@ -289,8 +289,7 @@ source_account = Aws::S3.new(
 # Catapult
 destination_account = Aws::S3.new(
   'AKIAJN3V2WRSXHZ3YIBA', 
-  'M3TQFP829iFDc8QpBDQhjDXxEaSDE9Z9Lz0BNBhg', 
-  :connection_mode => :single
+  'M3TQFP829iFDc8QpBDQhjDXxEaSDE9Z9Lz0BNBhg'
 )
 
 source_bucket = source_account.bucket('catapult-elearning-staging')
