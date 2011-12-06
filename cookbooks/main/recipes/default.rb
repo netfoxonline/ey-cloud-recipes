@@ -6,7 +6,8 @@ end
 
 require_recipe 'collector'
 
-# uncomment if you want to run postgres recipe
+require_recipe 'delayed_job'
+
 #require_recipe 'nginx'
 #require_recipe 'nginx-uploads'
 
