@@ -4,8 +4,9 @@ execute "testing" do
   }
 end
 
+require_recipe 'collector'
+
 # uncomment if you want to run postgres recipe
-require_recipe 'postgres-9'
 #require_recipe 'nginx'
 #require_recipe 'nginx-uploads'
 
