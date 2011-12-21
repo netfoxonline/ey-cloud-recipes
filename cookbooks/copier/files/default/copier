@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# This script starts and stops the Copier server
+# This script belongs in /engineyard/bin/copier
+CURDIR=`pwd`
+RAILS_ENV=production; export RAILS_ENV
+PID_FILE=/var/run/copier_$1.pid;
+
+usage() {
+  echo "Usage: $0 <appname> {start, stop}"
+  exit 1
+}
+
+if [ $# -lt 2 ]; then usage; fi
+
+if [ -d /data/$1/current ]; then
+  cd /data/$1/current
+
+  # handle the second param, don't start if already existing
+  case "$2" in
+    start)
+      cd /data/$1/current
+      echo "Starting Copier server."
+      if [ -f $PID_FILE ]; then
+        PID=`cat $PID_FILE`
+        if [ -d /proc/$PID ]; then
+          echo "Copier is already running yo!"
+          exit 0
+        fi
+        rm -f $PID_FILE
+      fi
+      /usr/bin/ruby lib/copier-control.rb -P $PID_FILE -D /data/$1/shared/incoming/ -d
+      ;;
+    stop)
+      echo "Stopping Copier server."
+      cd /data/$1/current
+      if [ -f $PID_FILE ]; then
+        PID=`cat $PID_FILE`
+        if [ -d /proc/$PID ]; then
+          kill -9 $PID >/dev/null 2>&1
+        fi
+	      rm $PID_FILE
+      fi
+      ;;
+    *)
+      usage
+      ;;
+  esac
+else
+  echo "/data/$1/current doesn't exist."
+  usage
+fi
+cd $CURDIR

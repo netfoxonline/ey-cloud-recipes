@@ -1,0 +1,5 @@
+check process <%= @worker_name %>
+  with pidfile /var/run/copier_<%= @app_name %>.pid
+  start program = "/engineyard/bin/copier <%= @app_name %> start" with timeout 60 seconds
+  stop program = "/engineyard/bin/copier <%= @app_name %> stop" with timeout 60 seconds
+  group copier_<%= @app_name %>

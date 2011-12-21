@@ -5,8 +5,9 @@ execute "testing" do
 end
 
 require_recipe 'collector'
-
 require_recipe 'delayed_job'
+require_recipe 'nginx-uploads'
+require_recipe "copier"
 
 #require_recipe 'nginx'
 #require_recipe 'nginx-uploads'

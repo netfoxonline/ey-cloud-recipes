@@ -1,6 +1,0 @@
-rewrite      ^/units/(.*)/sections/(.*)/pages/icons/(.*)$ http://www.smallprintonline.com/external/icons/$3 permanent;
-
-if ($host ~* (.*)\.smallprintonline.com) {
-  set $cat_subdomain $1;
-  rewrite ^(.*)$ http://$cat_subdomain.catapult-elearning.com$1 permanent;
-}
