@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# This script starts and stops the Copier server
-# This script belongs in /engineyard/bin/copier
+# This script starts and stops the Collector server
+# This script belongs in /engineyard/bin/collector
 CURDIR=`pwd`
 RAILS_ENV=production; export RAILS_ENV
-PID_FILE=/var/run/copier_$1.pid;
+PID_FILE=/var/run/collector_$1.pid;
 
 usage() {
   echo "Usage: $0 <appname> {start, stop}"
@@ -20,19 +20,19 @@ if [ -d /data/$1/current ]; then
   case "$2" in
     start)
       cd /data/$1/current
-      echo "Starting Copier server."
+      echo "Starting Collector server."
       if [ -f $PID_FILE ]; then
         PID=`cat $PID_FILE`
         if [ -d /proc/$PID ]; then
-          echo "Copier is already running yo!"
+          echo "Collector is already running yo!"
           exit 0
         fi
         rm -f $PID_FILE
       fi
-      /usr/bin/ruby lib/copier.rb -P $PID_FILE -D /data/$1/shared/incoming/ -d
+      /usr/bin/ruby lib/collector/v2/collector.rb -P $PID_FILE -d
       ;;
     stop)
-      echo "Stopping Copier server."
+      echo "Stopping Collector server."
       cd /data/$1/current
       if [ -f $PID_FILE ]; then
         PID=`cat $PID_FILE`

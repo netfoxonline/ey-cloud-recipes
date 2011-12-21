@@ -1,0 +1,5 @@
+check process <%= @worker_name %>
+  with pidfile /var/run/collector_<%= @app_name %>.pid
+  start program = "/engineyard/bin/collector <%= @app_name %> start" with timeout 60 seconds
+  stop program = "/engineyard/bin/collector <%= @app_name %> stop" with timeout 60 seconds
+  group collector_<%= @app_name %>
