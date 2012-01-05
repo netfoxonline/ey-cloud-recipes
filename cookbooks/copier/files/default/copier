@@ -5,6 +5,7 @@
 CURDIR=`pwd`
 RAILS_ENV=production; export RAILS_ENV
 PID_FILE=/var/run/copier_$1.pid;
+LOGFILE=/data/$1/shared/log/copier.log
 
 usage() {
   echo "Usage: $0 <appname> {start, stop}"
@@ -29,7 +30,7 @@ if [ -d /data/$1/current ]; then
         fi
         rm -f $PID_FILE
       fi
-      /usr/bin/ruby lib/copier.rb --pid $PID_FILE -S /data/$1/shared/incoming/ --daemon
+      /usr/bin/ruby lib/copier.rb --pid $PID_FILE -S /data/$1/shared/incoming/ --daemon -l $LOGFILE
       ;;
     stop)
       echo "Stopping Copier server."
