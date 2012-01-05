@@ -29,7 +29,7 @@ if [ -d /data/$1/current ]; then
         fi
         rm -f $PID_FILE
       fi
-      /usr/bin/ruby lib/copier.rb -P $PID_FILE -D /data/$1/shared/incoming/ -d
+      /usr/bin/ruby lib/copier.rb --pid $PID_FILE -S /data/$1/shared/incoming/ --daemon
       ;;
     stop)
       echo "Stopping Copier server."

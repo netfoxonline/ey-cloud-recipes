@@ -5,6 +5,10 @@
 CURDIR=`pwd`
 RAILS_ENV=production; export RAILS_ENV
 PID_FILE=/var/run/collector_$1.pid;
+OUTPUT_DIR=/data/$1/shared/incoming/
+Q_TOKEN=9TRc1k2QQ6-YkMQoBg4nkaxldi4
+Q_PROJECT_ID=4ee85cfa5ce1a8193e000133
+AIRBRAKE_KEY=378e12c530712eeead1635dd25147fcb
 
 usage() {
   echo "Usage: $0 <appname> {start, stop}"
@@ -29,7 +33,7 @@ if [ -d /data/$1/current ]; then
         fi
         rm -f $PID_FILE
       fi
-      /usr/bin/ruby lib/collector/v2/collector.rb -P $PID_FILE -d
+      bundle exec nfcollector --pid $PID_FILE -d -O $OUTPUT_DIR -T $Q_TOKEN -P $Q_PROJECT_ID -k $AIRBRAKE_KEY
       ;;
     stop)
       echo "Stopping Collector server."
