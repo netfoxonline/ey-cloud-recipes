@@ -34,7 +34,7 @@ if [ -d /data/$1/current ]; then
         fi
         rm -f $PID_FILE
       fi
-      bundle exec nfcollector --pid $PID_FILE -d -O $OUTPUT_DIR -T $Q_TOKEN -P $Q_PROJECT_ID -k $AIRBRAKE_KEY -l $LOGFILE
+      /usr/bin/ruby lib/collector.rb --pid $PID_FILE -d -O $OUTPUT_DIR -T $Q_TOKEN -P $Q_PROJECT_ID -k $AIRBRAKE_KEY -l $LOGFILE
       ;;
     stop)
       echo "Stopping Collector server."
